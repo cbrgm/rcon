@@ -1,6 +1,6 @@
-# 🎮 rcon
+# 🕹️ rcon
 
-**A pure Go implementation of the [Source RCON protocol](https://developer.valvesoftware.com/wiki/Source_RCON_Protocol) for administering game servers over TCP, plus a small CLI on top. Zero third-party dependencies, stdlib only.**
+**Pure modern Go implementation of the [RCON protocol](https://developer.valvesoftware.com/wiki/Source_RCON_Protocol) for administering game servers over TCP.**
 
 [![GitHub release](https://img.shields.io/github/release/cbrgm/rcon.svg)](https://github.com/cbrgm/rcon)
 [![Go Reference](https://pkg.go.dev/badge/github.com/cbrgm/rcon.svg)](https://pkg.go.dev/github.com/cbrgm/rcon)
@@ -12,11 +12,13 @@ RCON lets you send admin commands to a running game server (Minecraft, Source en
 
 It comes in five parts, layered so each one builds on the one before:
 
-- `rcon` -> the low-level protocol: one authenticated connection, one command at a time.
-- `rconclient` -> a higher-level client in the shape of `net/http`: a `DefaultClient`, package-level helpers, retries, and sessions for repeated commands.
-- `cmd/rcon` -> the CLI, for single-shot and interactive use.
-- `rconhttp` -> an `http.Handler` that turns HTTP requests into RCON commands, so you can serve RCON to a frontend or a script without it speaking the wire protocol.
-- `rconserver` -> the other direction: build an RCON server the way `net/http` builds an HTTP one, write a `Handler`, hand it to a `Server`, call `ListenAndServe`.
+| Package | What it does |
+| --- | --- |
+| `rcon` | The low-level protocol: one authenticated connection, one command at a time. |
+| `rconclient` | A higher-level client in the shape of `net/http`: a `DefaultClient`, package-level helpers, retries, and sessions for repeated commands. |
+| `cmd/rcon` | The CLI, for single-shot and interactive use. |
+| `rconhttp` | An `http.Handler` that turns HTTP requests into RCON commands, so you can serve RCON to a frontend or a script without it speaking the wire protocol. |
+| `rconserver` | The other direction: build an RCON server the way `net/http` builds an HTTP one. Write a `Handler`, hand it to a `Server`, call `ListenAndServe`. |
 
 Every package carries its own tests. Statement coverage per package:
 
