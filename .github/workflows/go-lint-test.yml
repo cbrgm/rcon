@@ -1,0 +1,59 @@
+---
+name: go-lint-test
+
+"on":
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  testing:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        id: source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup golang
+        id: golang
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: .go-version
+
+      - name: install golangci
+        uses: giantswarm/install-binary-action@5bef88f65012037dd836117c8d344b21bb559854 # v4.1.0
+        with:
+          binary: "golangci-lint"
+          version: "2.11.4"
+          download_url: "https://github.com/golangci/golangci-lint/releases/download/v${version}/golangci-lint-${version}-linux-amd64.tar.gz"
+          tarball_binary_path: "*/${binary}"
+          smoke_test: "${binary} --version"
+
+      - name: Run generate
+        id: generate
+        run: make generate
+
+      - name: Run vet
+        id: vet
+        run: make vet
+
+      - name: Run lint
+        id: lint
+        run: make lint
+
+      - name: Run build
+        id: build
+        run: make build
+
+      - name: Run test
+        id: test
+        run: make test
+...
