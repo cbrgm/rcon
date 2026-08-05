@@ -12,21 +12,13 @@ RCON lets you send admin commands to a running game server (Minecraft, Source en
 
 It comes in five parts, layered so each one builds on the one before:
 
-| Package | What it does |
-| --- | --- |
-| `rcon` | The low-level protocol: one authenticated connection, one command at a time. |
-| `rconclient` | A higher-level client in the shape of `net/http`: a `DefaultClient`, package-level helpers, retries, and sessions for repeated commands. |
-| `cmd/rcon` | The CLI, for single-shot and interactive use. |
-| `rconhttp` | An `http.Handler` that turns HTTP requests into RCON commands, so you can serve RCON to a frontend or a script without it speaking the wire protocol. |
-| `rconserver` | The other direction: build an RCON server the way `net/http` builds an HTTP one. Write a `Handler`, hand it to a `Server`, call `ListenAndServe`. |
-
-Every package carries its own tests. Statement coverage per package:
-
-![rcon coverage](https://img.shields.io/badge/rcon-87.8%25-brightgreen)
-![rconclient coverage](https://img.shields.io/badge/rconclient-89.4%25-brightgreen)
-![rconhttp coverage](https://img.shields.io/badge/rconhttp-91.2%25-brightgreen)
-![rconserver coverage](https://img.shields.io/badge/rconserver-93.0%25-brightgreen)
-![cmd/rcon coverage](https://img.shields.io/badge/cmd%2Frcon-92.2%25-brightgreen)
+| Package | What it does | Coverage |
+| --- | --- | --- |
+| `rcon` | The low-level protocol: one authenticated connection, one command at a time. | ![coverage](https://img.shields.io/badge/coverage-87.8%25-brightgreen) |
+| `rconclient` | A higher-level client in the shape of `net/http`: a `DefaultClient`, package-level helpers, retries, and sessions for repeated commands. | ![coverage](https://img.shields.io/badge/coverage-89.4%25-brightgreen) |
+| `cmd/rcon` | The CLI, for single-shot and interactive use. | ![coverage](https://img.shields.io/badge/coverage-92.2%25-brightgreen) |
+| `rconhttp` | An `http.Handler` that turns HTTP requests into RCON commands, so you can serve RCON to a frontend or a script without it speaking the wire protocol. | ![coverage](https://img.shields.io/badge/coverage-91.2%25-brightgreen) |
+| `rconserver` | The other direction: build an RCON server the way `net/http` builds an HTTP one. Write a `Handler`, hand it to a `Server`, call `ListenAndServe`. | ![coverage](https://img.shields.io/badge/coverage-93.0%25-brightgreen) |
 
 ## Documentation
 
