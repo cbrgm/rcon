@@ -36,7 +36,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		password   = fs.String("password", "", "rcon password (prefer RCON_PASSWORD)")
 		configPath = fs.String("config", defaultConfigPath(), "path to JSON config")
 		server     = fs.String("server", "", "named server from the config")
-		singlePkt  = fs.Bool("single-packet", false, "read one response packet per command (for servers like Project Zomboid that mishandle the multi-packet terminator)")
+		singlePkt  = fs.Bool("single-packet", false, "read one response packet per command (for servers that mishandle the multi-packet terminator)")
+		drain      = fs.Bool("drain", false, "read response packets until the connection goes idle (for servers like Project Zomboid that mishandle the terminator but still split large replies)")
 		showVer    = fs.Bool("version", false, "print version and exit")
 	)
 	if err := fs.Parse(args); err != nil {
@@ -67,7 +68,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 
 	target, err := Resolve(cfg,
-		Flags{Host: *host, Port: *port, Password: *password, Server: *server, SinglePacket: *singlePkt},
+		Flags{Host: *host, Port: *port, Password: *password, Server: *server, SinglePacket: *singlePkt, Drain: *drain},
 		envFromOS())
 	if err != nil {
 		_, _ = fmt.Fprintln(stderr, "error:", err)
@@ -75,7 +76,10 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 
 	var clientOpts []rconclient.Option
-	if target.SinglePacket {
+	switch {
+	case target.Drain:
+		clientOpts = append(clientOpts, rconclient.WithReadUntilIdle(0)) // 0 => default window
+	case target.SinglePacket:
 		clientOpts = append(clientOpts, rconclient.WithSinglePacket())
 	}
 	app := &App{
@@ -95,11 +99,13 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 func envFromOS() Env {
 	port, _ := strconv.Atoi(os.Getenv("RCON_PORT"))
 	singlePacket, _ := strconv.ParseBool(os.Getenv("RCON_SINGLE_PACKET"))
+	drain, _ := strconv.ParseBool(os.Getenv("RCON_DRAIN"))
 	return Env{
 		Host:         os.Getenv("RCON_HOST"),
 		Port:         port,
 		Password:     os.Getenv("RCON_PASSWORD"),
 		SinglePacket: singlePacket,
+		Drain:        drain,
 	}
 }
 
