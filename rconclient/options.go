@@ -48,7 +48,21 @@ func WithLogger(l *slog.Logger) Option { return func(c *Client) { c.logger = l }
 
 // WithSinglePacket makes the client read exactly one response packet per command
 // instead of using the multi-packet terminator sentinel. Use it for servers that
-// mishandle that sentinel, for example Project Zomboid. Multi-packet mode (the
-// default) is correct for Source-engine servers, whose large responses span
-// several packets and would otherwise be truncated.
+// mishandle that sentinel and never split a response across packets. Multi-packet
+// mode (the default) is correct for Source-engine servers, whose large responses
+// span several packets and would otherwise be truncated. For servers that
+// mishandle the sentinel yet still split large responses (e.g. Project Zomboid),
+// prefer WithReadUntilIdle, which takes precedence if both are set.
 func WithSinglePacket() Option { return func(c *Client) { c.singlePacket = true } }
+
+// WithReadUntilIdle reads response packets until the connection is quiet for
+// window, concatenating their bodies, instead of using the terminator sentinel.
+// It handles servers that mishandle that sentinel but still split large responses
+// across packets, such as Project Zomboid. A window of 0 or less uses
+// rcon.DefaultIdleWindow. See rcon.WithReadUntilIdle for the tradeoffs.
+func WithReadUntilIdle(window time.Duration) Option {
+	return func(c *Client) {
+		c.idleDrain = true
+		c.idleWindow = window
+	}
+}
