@@ -91,3 +91,28 @@ func Example_errorHandling() {
 		fmt.Println("connection problem:", err)
 	}
 }
+
+// WithSinglePacket reads one reply packet per command, for servers that
+// mishandle the multi-packet terminator and never split a response.
+func ExampleWithSinglePacket() {
+	client := rconclient.New(rconclient.WithSinglePacket())
+
+	out, err := client.Execute(context.Background(), "127.0.0.1:27015", "password", "players")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(out)
+}
+
+// WithReadUntilIdle reads reply packets until the connection goes quiet, for
+// servers like Project Zomboid that split large replies but mishandle the
+// terminator. A window of 0 uses the default.
+func ExampleWithReadUntilIdle() {
+	client := rconclient.New(rconclient.WithReadUntilIdle(0))
+
+	out, err := client.Execute(context.Background(), "127.0.0.1:27015", "changeme", "help")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(out)
+}
