@@ -36,6 +36,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		password   = fs.String("password", "", "rcon password (prefer RCON_PASSWORD)")
 		configPath = fs.String("config", defaultConfigPath(), "path to JSON config")
 		server     = fs.String("server", "", "named server from the config")
+		singlePkt  = fs.Bool("single-packet", false, "read one response packet per command (for servers like Project Zomboid that mishandle the multi-packet terminator)")
 		showVer    = fs.Bool("version", false, "print version and exit")
 	)
 	if err := fs.Parse(args); err != nil {
@@ -66,15 +67,19 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 
 	target, err := Resolve(cfg,
-		Flags{Host: *host, Port: *port, Password: *password, Server: *server},
+		Flags{Host: *host, Port: *port, Password: *password, Server: *server, SinglePacket: *singlePkt},
 		envFromOS())
 	if err != nil {
 		_, _ = fmt.Fprintln(stderr, "error:", err)
 		return 2
 	}
 
+	var clientOpts []rconclient.Option
+	if target.SinglePacket {
+		clientOpts = append(clientOpts, rconclient.WithSinglePacket())
+	}
 	app := &App{
-		Client: rconclient.New(),
+		Client: rconclient.New(clientOpts...),
 		Stdin:  stdin,
 		Stdout: stdout,
 		Stderr: stderr,
@@ -89,10 +94,12 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 
 func envFromOS() Env {
 	port, _ := strconv.Atoi(os.Getenv("RCON_PORT"))
+	singlePacket, _ := strconv.ParseBool(os.Getenv("RCON_SINGLE_PACKET"))
 	return Env{
-		Host:     os.Getenv("RCON_HOST"),
-		Port:     port,
-		Password: os.Getenv("RCON_PASSWORD"),
+		Host:         os.Getenv("RCON_HOST"),
+		Port:         port,
+		Password:     os.Getenv("RCON_PASSWORD"),
+		SinglePacket: singlePacket,
 	}
 }
 

@@ -15,9 +15,10 @@ const DefaultPort = 25575
 
 // ServerConfig is one named server in the config file.
 type ServerConfig struct {
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	Password string `json:"password"`
+	Host         string `json:"host"`
+	Port         int    `json:"port"`
+	Password     string `json:"password"`
+	SinglePacket bool   `json:"singlePacket"`
 }
 
 // Config is the on-disk JSON config: named servers plus a default selection.
@@ -28,23 +29,26 @@ type Config struct {
 
 // Flags holds the raw command-line inputs relevant to connection resolution.
 type Flags struct {
-	Host     string
-	Port     int
-	Password string
-	Server   string // selects a named server from the config
+	Host         string
+	Port         int
+	Password     string
+	Server       string // selects a named server from the config
+	SinglePacket bool
 }
 
 // Env holds the relevant environment variables.
 type Env struct {
-	Host     string
-	Port     int
-	Password string
+	Host         string
+	Port         int
+	Password     string
+	SinglePacket bool
 }
 
 // Resolved is the final connection target after applying precedence.
 type Resolved struct {
-	Address  string
-	Password string
+	Address      string
+	Password     string
+	SinglePacket bool
 }
 
 // LoadConfig reads a JSON config from path. A missing file is only an error when
@@ -78,8 +82,12 @@ func Resolve(cfg Config, flags Flags, env Env) (Resolved, error) {
 	if host == "" {
 		return Resolved{}, errors.New("no host specified (use --host, RCON_HOST, or a config server)")
 	}
+	// SinglePacket is a boolean opt-in, so it is enabled if any source turns it
+	// on (flag, env, or the chosen server) rather than following the usual
+	// first-non-zero precedence, which could never re-disable it.
 	return Resolved{
-		Address:  net.JoinHostPort(host, strconv.Itoa(port)),
-		Password: password,
+		Address:      net.JoinHostPort(host, strconv.Itoa(port)),
+		Password:     password,
+		SinglePacket: flags.SinglePacket || env.SinglePacket || base.SinglePacket,
 	}, nil
 }
