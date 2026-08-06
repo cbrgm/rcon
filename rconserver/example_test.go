@@ -120,6 +120,23 @@ func Example_roundTrip() {
 	// Output: pong
 }
 
+// A HandlerFunc dispatches on the command and can read the client's address and
+// the per-request context, which is canceled when the server begins shutting
+// down.
+func ExampleHandlerFunc() {
+	h := rconserver.HandlerFunc(func(w rconserver.ResponseWriter, r *rconserver.Request) {
+		log.Printf("command %q from %s", r.Command, r.RemoteAddr)
+
+		select {
+		case <-r.Context().Done():
+			return // server is shutting down; abandon the response
+		default:
+		}
+		_, _ = io.WriteString(w, "ok")
+	})
+	log.Fatal(rconserver.ListenAndServe(":25575", os.Getenv("RCON_PASSWORD"), h))
+}
+
 func firstWord(s string) string {
 	if i := strings.IndexByte(s, ' '); i >= 0 {
 		return s[:i]

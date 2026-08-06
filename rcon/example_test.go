@@ -3,6 +3,7 @@ package rcon_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -148,4 +149,24 @@ func ExampleWithReadUntilIdle() {
 		log.Fatal(err)
 	}
 	fmt.Println(out)
+}
+
+// The package's errors are sentinels: classify a failure with errors.Is rather
+// than by matching strings.
+func Example_errorHandling() {
+	ctx := context.Background()
+
+	conn, err := rcon.Dial(ctx, "127.0.0.1:25575", "wrong-password")
+	if err != nil {
+		if errors.Is(err, rcon.ErrAuthFailed) {
+			fmt.Println("wrong password")
+			return
+		}
+		log.Fatal(err) // dial or protocol error
+	}
+	defer conn.Close()
+
+	if _, err := conn.Execute(ctx, "list"); errors.Is(err, rcon.ErrClosed) {
+		fmt.Println("connection was closed")
+	}
 }
