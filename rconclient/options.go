@@ -45,3 +45,10 @@ func WithDialer(d DialFunc) Option { return func(c *Client) { c.dialer = d } }
 
 // WithLogger sets the structured logger. The default logger discards output.
 func WithLogger(l *slog.Logger) Option { return func(c *Client) { c.logger = l } }
+
+// WithSinglePacket makes the client read exactly one response packet per command
+// instead of using the multi-packet terminator sentinel. Use it for servers that
+// mishandle that sentinel, for example Project Zomboid. Multi-packet mode (the
+// default) is correct for Source-engine servers, whose large responses span
+// several packets and would otherwise be truncated.
+func WithSinglePacket() Option { return func(c *Client) { c.singlePacket = true } }

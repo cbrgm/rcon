@@ -17,12 +17,13 @@ type BackoffFunc func(attempt int) time.Duration
 // with New; the zero value is not usable. A Client is safe for use by multiple
 // goroutines, mirroring *http.Client.
 type Client struct {
-	timeout     time.Duration
-	dialTimeout time.Duration
-	attempts    int
-	backoff     BackoffFunc
-	dialer      DialFunc
-	logger      *slog.Logger
+	timeout      time.Duration
+	dialTimeout  time.Duration
+	attempts     int
+	backoff      BackoffFunc
+	dialer       DialFunc
+	singlePacket bool
+	logger       *slog.Logger
 }
 
 // DefaultClient is used by the package-level Execute helper.
@@ -92,6 +93,10 @@ func (c *Client) executeOnce(ctx context.Context, address, password, command str
 }
 
 func (c *Client) dial(ctx context.Context, address, password string) (*rcon.Conn, error) {
+	var opts []rcon.Option
+	if c.singlePacket {
+		opts = append(opts, rcon.WithSinglePacket())
+	}
 	if c.dialer != nil {
 		nc, err := c.dialer(ctx, address)
 		if err != nil {
@@ -100,14 +105,14 @@ func (c *Client) dial(ctx context.Context, address, password string) (*rcon.Conn
 		if nc == nil {
 			return nil, errors.New("rconclient: dialer returned a nil connection with no error")
 		}
-		conn, err := rcon.Open(ctx, nc, password)
+		conn, err := rcon.Open(ctx, nc, password, opts...)
 		if err != nil {
 			_ = nc.Close() // rcon.Open does not own nc; close it on failure.
 			return nil, err
 		}
 		return conn, nil
 	}
-	return rcon.Dial(ctx, address, password, rcon.WithDialTimeout(c.dialTimeout))
+	return rcon.Dial(ctx, address, password, append([]rcon.Option{rcon.WithDialTimeout(c.dialTimeout)}, opts...)...)
 }
 
 // Execute runs a single command using DefaultClient.
