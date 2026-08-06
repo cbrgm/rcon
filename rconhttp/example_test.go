@@ -9,7 +9,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/cbrgm/rcon/rconclient"
 	"github.com/cbrgm/rcon/rconhttp"
 	"github.com/cbrgm/rcon/rconserver"
 )
@@ -65,6 +67,26 @@ func ExampleResolverFunc() {
 
 	mux := http.NewServeMux()
 	mux.Handle("POST /servers/{server}/command", h)
+	_ = http.ListenAndServe(":8080", mux)
+}
+
+// WithClient hands the handler a preconfigured client, so every backend call
+// shares the same timeout, retry, and logging policy.
+func ExampleWithClient() {
+	client := rconclient.New(
+		rconclient.WithTimeout(5*time.Second),
+		rconclient.WithRetry(2, rconclient.ExponentialBackoff(50*time.Millisecond, time.Second)),
+	)
+
+	h := rconhttp.New(
+		rconhttp.Backend{Addr: "127.0.0.1:25575", Password: os.Getenv("RCON_PASSWORD")},
+		rconhttp.WithClient(client),
+		rconhttp.WithIdleTimeout(10*time.Minute),
+	)
+	defer h.Close()
+
+	mux := http.NewServeMux()
+	mux.Handle("POST /command", h)
 	_ = http.ListenAndServe(":8080", mux)
 }
 

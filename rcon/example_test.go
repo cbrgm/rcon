@@ -3,6 +3,7 @@ package rcon_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -109,4 +110,63 @@ func ExamplePacket() {
 	}
 	fmt.Printf("id=%d type=%d body=%q\n", got.ID, got.Type, got.Body)
 	// Output: id=42 type=2 body="list"
+}
+
+// WithSinglePacket reads exactly one reply packet per command. Use it for
+// servers that mishandle the multi-packet terminator sentinel and never split a
+// response across packets.
+func ExampleWithSinglePacket() {
+	ctx := context.Background()
+
+	conn, err := rcon.Dial(ctx, "127.0.0.1:27015", "password", rcon.WithSinglePacket())
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	out, err := conn.Execute(ctx, "players")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(out)
+}
+
+// WithReadUntilIdle reads reply packets until the connection goes quiet, for
+// servers like Project Zomboid that split large replies across packets yet
+// mishandle the terminator sentinel. A window of 0 uses DefaultIdleWindow.
+func ExampleWithReadUntilIdle() {
+	ctx := context.Background()
+
+	conn, err := rcon.Dial(ctx, "127.0.0.1:27015", "changeme",
+		rcon.WithReadUntilIdle(100*time.Millisecond))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	out, err := conn.Execute(ctx, "help")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(out)
+}
+
+// The package's errors are sentinels: classify a failure with errors.Is rather
+// than by matching strings.
+func Example_errorHandling() {
+	ctx := context.Background()
+
+	conn, err := rcon.Dial(ctx, "127.0.0.1:25575", "wrong-password")
+	if err != nil {
+		if errors.Is(err, rcon.ErrAuthFailed) {
+			fmt.Println("wrong password")
+			return
+		}
+		log.Fatal(err) // dial or protocol error
+	}
+	defer conn.Close()
+
+	if _, err := conn.Execute(ctx, "list"); errors.Is(err, rcon.ErrClosed) {
+		fmt.Println("connection was closed")
+	}
 }
