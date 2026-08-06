@@ -1,8 +1,3 @@
-// Package rconclient is a high-level RCON client built on github.com/cbrgm/rcon.
-//
-// It mirrors the shape of net/http: a DefaultClient, package-level helper
-// functions that delegate to it, and an instantiable Client that is safe for
-// concurrent use. For repeated commands to one server, use a Session.
 package rconclient
 
 import (
