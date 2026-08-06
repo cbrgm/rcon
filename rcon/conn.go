@@ -3,6 +3,8 @@ package rcon
 import (
 	"bufio"
 	"context"
+	"errors"
+	"io"
 	"net"
 	"strings"
 	"sync"
@@ -131,16 +133,19 @@ func (c *Conn) Execute(ctx context.Context, command string) (string, error) {
 		return "", err
 	}
 
-	if !c.set.multiPacket {
+	switch c.set.mode {
+	case readSingle:
 		return c.readSinglePacket(reqID)
+	case readIdle:
+		return c.readIdleDrain(reqID)
+	default: // readMulti
+		// Send an empty sentinel; the server echoes it after all real chunks.
+		sentinelID := c.nextID()
+		if _, err := (Packet{ID: sentinelID, Type: TypeResponseValue}).WriteTo(c.conn); err != nil {
+			return "", err
+		}
+		return c.readMultiPacket(reqID, sentinelID)
 	}
-
-	// Send an empty sentinel; the server echoes it after all real chunks.
-	sentinelID := c.nextID()
-	if _, err := (Packet{ID: sentinelID, Type: TypeResponseValue}).WriteTo(c.conn); err != nil {
-		return "", err
-	}
-	return c.readMultiPacket(reqID, sentinelID)
 }
 
 func (c *Conn) readSinglePacket(reqID int32) (string, error) {
@@ -177,6 +182,47 @@ func (c *Conn) readMultiPacket(reqID, sentinelID int32) (string, error) {
 		}
 		b.WriteString(resp.Body)
 	}
+}
+
+// readIdleDrain reads response packets belonging to reqID until no further data
+// arrives within the idle window, concatenating their bodies. It sends no
+// terminator sentinel, so it suits servers that mishandle that sentinel yet
+// still split large responses across packets (e.g. Project Zomboid). The first
+// packet is bounded by the connection's normal deadline (set by Execute); each
+// subsequent read is bounded by the idle window, and a read that times out or
+// hits EOF marks the response complete. Packets whose id is neither reqID nor
+// the tolerated -1 are skipped rather than accumulated.
+func (c *Conn) readIdleDrain(reqID int32) (string, error) {
+	var b strings.Builder
+	first := true
+	for {
+		if !first {
+			if err := c.conn.SetReadDeadline(time.Now().Add(c.set.idleWindow)); err != nil {
+				return "", err
+			}
+		}
+		var resp Packet
+		if _, err := resp.ReadFrom(c.br); err != nil {
+			if first {
+				return "", err // no reply within the normal deadline
+			}
+			if isIdleTimeout(err) || errors.Is(err, io.EOF) {
+				return b.String(), nil // quiet: the response is complete
+			}
+			return "", err
+		}
+		if resp.ID == reqID || resp.ID == -1 {
+			b.WriteString(resp.Body)
+		}
+		first = false
+	}
+}
+
+// isIdleTimeout reports whether err is a read deadline expiry, which in
+// read-until-idle mode signals the response is complete rather than a failure.
+func isIdleTimeout(err error) bool {
+	ne, ok := errors.AsType[net.Error](err)
+	return ok && ne.Timeout()
 }
 
 // drainSourceMirror discards a Source-engine trailing "mirror" packet

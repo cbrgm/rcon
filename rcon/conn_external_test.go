@@ -80,7 +80,7 @@ func TestExecuteMultiPacket(t *testing.T) {
 	srv := fakercon.Start(t, "secret")
 	const total = 3*rcon.MaxPayloadSize + 123 // spans 4 packets
 	srv.HandleLong("bigcmd", total)
-	c, err := rcon.Dial(t.Context(), srv.Addr(), "secret") // multiPacket on by default
+	c, err := rcon.Dial(t.Context(), srv.Addr(), "secret") // multi-packet mode is the default
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +106,7 @@ func TestExecuteMultiPacketSourceMirrorSequential(t *testing.T) {
 	const total = 2*rcon.MaxPayloadSize + 7 // spans multiple packets
 	addr := startSourceMirrorServer(t, "secret", "bigcmd", total)
 
-	c, err := rcon.Dial(t.Context(), addr, "secret") // multiPacket on by default
+	c, err := rcon.Dial(t.Context(), addr, "secret") // multi-packet mode is the default
 	if err != nil {
 		t.Fatal(err)
 	}

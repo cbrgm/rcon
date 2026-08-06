@@ -13,8 +13,11 @@ func TestNewSettingsDefaults(t *testing.T) {
 	if s.maxCommandLen != DefaultMaxCommandLen {
 		t.Fatalf("maxCommandLen = %d", s.maxCommandLen)
 	}
-	if !s.multiPacket {
-		t.Fatal("multiPacket should default to true")
+	if s.mode != readMulti {
+		t.Fatalf("mode should default to readMulti, got %d", s.mode)
+	}
+	if s.idleWindow != DefaultIdleWindow {
+		t.Fatalf("idleWindow = %v, want %v", s.idleWindow, DefaultIdleWindow)
 	}
 }
 
@@ -31,7 +34,23 @@ func TestNewSettingsOptions(t *testing.T) {
 	if s.maxCommandLen != 50 {
 		t.Fatalf("maxCommandLen = %d", s.maxCommandLen)
 	}
-	if s.multiPacket {
-		t.Fatal("WithSinglePacket should disable multiPacket")
+	if s.mode != readSingle {
+		t.Fatalf("WithSinglePacket should set mode readSingle, got %d", s.mode)
+	}
+}
+
+func TestWithReadUntilIdleOption(t *testing.T) {
+	s := newSettings([]Option{WithReadUntilIdle(25 * time.Millisecond)})
+	if s.mode != readIdle {
+		t.Fatalf("mode = %d, want readIdle", s.mode)
+	}
+	if s.idleWindow != 25*time.Millisecond {
+		t.Fatalf("idleWindow = %v, want 25ms", s.idleWindow)
+	}
+
+	// A non-positive window keeps the default.
+	s = newSettings([]Option{WithReadUntilIdle(0)})
+	if s.mode != readIdle || s.idleWindow != DefaultIdleWindow {
+		t.Fatalf("mode/window = %d/%v, want readIdle/%v", s.mode, s.idleWindow, DefaultIdleWindow)
 	}
 }
