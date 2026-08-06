@@ -23,6 +23,8 @@ type Client struct {
 	backoff      BackoffFunc
 	dialer       DialFunc
 	singlePacket bool
+	idleDrain    bool
+	idleWindow   time.Duration
 	logger       *slog.Logger
 }
 
@@ -94,7 +96,10 @@ func (c *Client) executeOnce(ctx context.Context, address, password, command str
 
 func (c *Client) dial(ctx context.Context, address, password string) (*rcon.Conn, error) {
 	var opts []rcon.Option
-	if c.singlePacket {
+	switch {
+	case c.idleDrain:
+		opts = append(opts, rcon.WithReadUntilIdle(c.idleWindow))
+	case c.singlePacket:
 		opts = append(opts, rcon.WithSinglePacket())
 	}
 	if c.dialer != nil {
