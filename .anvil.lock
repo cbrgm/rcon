@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-22T14:55:04.473161247Z",
+  "generated_at": "2026-08-25T13:06:41.825331498Z",
   "version": "1.3.7",
   "files": [
     {
@@ -85,6 +85,9 @@
     },
     {
       "path": "SECURITY.md"
+    },
+    {
+      "path": "cliff.toml"
     }
   ]
 }
